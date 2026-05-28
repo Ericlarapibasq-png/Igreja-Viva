@@ -1,0 +1,6 @@
+{
+  "name": "Igreja Viva",
+  "description": "Tecnologia a serviço do Reino. Plataforma ministerial inteligente para gestão de membros, visitantes, finanças, discipulado e escalas com inteligência artificial.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
