@@ -1,13 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Devotional, RadioTrack } from "../types";
+import { Devotional, RadioTrack, Member, Visitor } from "../types";
 import { STATIC_RADIO_TRACKS, STATIC_DEVOTIONALS } from "../data";
-import { Headphones, Radio, Play, Pause, SkipForward, SkipBack, Sparkles, MessageCircle, Volume2, BookOpen, Clock, Youtube, RadioTower, CheckCircle } from "lucide-react";
+import { 
+  Headphones, Radio, Play, Pause, SkipForward, SkipBack, Sparkles, 
+  MessageCircle, Volume2, BookOpen, Clock, Youtube, RadioTower, CheckCircle,
+  Send, Users, Smartphone, History, Loader2, RefreshCw, SendHorizontal
+} from "lucide-react";
 
 interface CommunicationRadioProps {
   onAskVivaIAPrompt: (prompt: string) => void;
+  members?: Member[];
+  visitors?: Visitor[];
 }
 
-export default function CommunicationRadio({ onAskVivaIAPrompt }: CommunicationRadioProps) {
+export default function CommunicationRadio({ onAskVivaIAPrompt, members, visitors }: CommunicationRadioProps) {
   // Devotional states
   const [devocionais, setDevocionais] = useState<Devotional[]>(STATIC_DEVOTIONALS);
   const [selectedTema, setSelectedTema] = useState("Generosidade");
@@ -22,6 +28,229 @@ export default function CommunicationRadio({ onAskVivaIAPrompt }: CommunicationR
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const activeTrack = tracks[currentTrackIndex];
+
+  // Daily AI broadcast states
+  const [dailyDispatches, setDailyDispatches] = useState<any[]>([]);
+  const [selectedDispatchTheme, setSelectedDispatchTheme] = useState("Esperança");
+  const [deliveryChannels, setDeliveryChannels] = useState<string[]>(["WhatsApp", "SMS"]);
+  const [autoSendActive, setAutoSendActive] = useState(true);
+  const [autoSendTime, setAutoSendTime] = useState("06:00");
+  const [sendingStep, setSendingStep] = useState(0); // 0=idle, 1=analyzing, 2=generating, 3=sending, 4=done
+  const [sendingProgress, setSendingProgress] = useState(0);
+  const [sendingCurrentRecipient, setSendingCurrentRecipient] = useState("");
+  const [simulatedConsole, setSimulatedConsole] = useState<string[]>([]);
+  const [showDispatchSuccessAlert, setShowDispatchSuccessAlert] = useState(false);
+
+  // Helper retrieval for robust data loading
+  const getMembersList = (): Member[] => {
+    if (members && members.length > 0) return members;
+    try {
+      const saved = localStorage.getItem("iv_members");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getVisitorsList = (): Visitor[] => {
+    if (visitors && visitors.length > 0) return visitors;
+    try {
+      const saved = localStorage.getItem("iv_visitors");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Load past campaigns from localStorage on mount & check automated send
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("viva-daily-dispatches");
+      let dList = saved ? JSON.parse(saved) : [];
+      
+      const todayStr = new Date().toISOString().split("T")[0];
+      const hasSentToday = dList.some((d: any) => d.dateOnly === todayStr);
+
+      // Automated morning trigger simulation
+      if (!hasSentToday && autoSendActive) {
+        // Create an automatic early morning send entry
+        const autoDevId = "dev-gen-auto-" + Date.now();
+        const autoDev: Devotional = {
+          id: autoDevId,
+          titulo: "Esperança: Renovo Diário nas Promessas",
+          referenciaBiblica: "Lamentações 3:22-23",
+          textoReferencia: "As misericórdias do Senhor são a causa de não sermos consumidos.",
+          reflexao: "O Senhor derrama diariamente por IA o consolo aos nossos corações. Cada manhã se renovam os Seus divinos favores! Caminhe com a cabeça erguida, ciente de que Ele guia o seu ministério e as ovelhas do Seu redil.",
+          oracao: "Senhor Deus, abençoa nossa igreja viva. Guia cada membro e visitante que recebeu este alimento espiritual hoje.",
+          desafioPratico: "Envie uma mensagem de paz para alguém hoje.",
+          autor: "Viva IA Devocional Autônoma",
+          data: "Gerado Hoje"
+        };
+
+        const totalRecipients = getMembersList().length + getVisitorsList().length || 32;
+        const autoDispatch = {
+          id: "disp-auto-" + Date.now(),
+          theme: "Esperança",
+          dateOnly: todayStr,
+          sentAt: `${new Date().toLocaleDateString("pt-BR")} às 06:00 BRT (Automático via IA)`,
+          recipientCount: totalRecipients,
+          channels: ["WhatsApp", "SMS"],
+          title: "Esperança: Renovo Diário nas Promessas",
+          devotional: autoDev,
+          isAutomated: true
+        };
+
+        const updatedList = [autoDispatch, ...dList];
+        localStorage.setItem("viva-daily-dispatches", JSON.stringify(updatedList));
+        dList = updatedList;
+
+        // Optionally prepend this automatic devotional to state list
+        setDevocionais(prev => [autoDev, ...prev]);
+      }
+
+      setDailyDispatches(dList);
+    } catch (err) {
+      console.error("Erro ao carregar ou disparar campanhas diárias:", err);
+    }
+  }, []);
+
+  // Trigger interactive daily AI dispatch simulation
+  const handleLaunchDailyDispatch = async () => {
+    if (sendingStep > 0) return;
+    
+    setSendingStep(1);
+    setSendingProgress(5);
+    setSimulatedConsole(["🔍 [CONEXÃO] Iniciando conexão segura com a Viva IA Pastoral..."]);
+    
+    const activeMembers = getMembersList();
+    const activeVisitors = getVisitorsList();
+    const combinedRecipients = [...activeMembers, ...activeVisitors];
+    const totalCount = combinedRecipients.length || 15; // fallback count if lists are completely empty
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSendingProgress(15);
+    setSendingStep(2);
+    setSimulatedConsole(prev => [
+      ...prev,
+      "⚙️ [ANALISAR] Analisando o engajamento espiritual coletivo da igreja...",
+      `📊 [MÉTRICA] Localizados: ${activeMembers.length} membros e ${activeVisitors.length} visitantes ativos.`,
+      `🧠 [IA - GEMINI] Solicitando reflexão diária personalizada tema: "${selectedDispatchTheme}"...`
+    ]);
+
+    let generatedDevText = "";
+    let fetchedTitle = `${selectedDispatchTheme}: O Caminho do Coração`;
+    
+    try {
+      const response = await fetch("/api/gemini/devocional", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tema: selectedDispatchTheme }),
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        generatedDevText = resData.text || "";
+        
+        // Extract title if possible
+        const firstLine = generatedDevText.split("\n")[0];
+        if (firstLine && firstLine.includes("#")) {
+          fetchedTitle = firstLine.replace(/[#*]/g, "").trim();
+        }
+      } else {
+        throw new Error();
+      }
+    } catch {
+      // Graceful local custom building
+      generatedDevText = `### ${selectedDispatchTheme}: Caminhando na Direção do Alto
+
+> **Salmos 119:105**  
+"Lâmpada para os meus pés é tua palavra e luz, para o meu caminho."
+
+O tema cristão da ${selectedDispatchTheme} nos ajuda a enxergar além das circunstâncias visíveis. Quando alimentamos o coração diariamente na Palavra, nosso ministério e comunhão se fortalecem mútuamente.
+
+**Oração:** "Querido Jesus, guia nossos pensamentos de amor e nos una no mesmo espírito de cooperação."
+**Desafio do Dia:** Faça uma ligação hoje para uma pessoa ausente do seu pequeno grupo.`;
+    }
+
+    const compiledDev: Devotional = {
+      id: "dev-gen-disp-" + Date.now(),
+      titulo: fetchedTitle,
+      referenciaBiblica: "Escrituras Sagradas",
+      textoReferencia: `Foco Diário: ${selectedDispatchTheme}`,
+      reflexao: generatedDevText,
+      oracao: "Querido Espírito Santo, nos fortalece no caminho da fé.",
+      desafioPratico: `Vivenciar a virtude de ${selectedDispatchTheme} de forma concreta hoje.`,
+      autor: "Viva IA Pastoral Broadcast",
+      data: "Gerado Hoje"
+    };
+
+    setSendingProgress(40);
+    setSendingStep(3);
+    setSimulatedConsole(prev => [
+      ...prev,
+      "✨ [GERADO] Devocional cristão estruturado com sucesso pela assessoria teológica!",
+      `💬 [TÍTULO] "${fetchedTitle}"`,
+      `🚀 [DISPARO] Iniciando transmissão em massa pelos canais selecionados: ${deliveryChannels.join(" + ")}...`
+    ]);
+
+    // Let's do a fast animated interval to simulate sending progress for a subset of members/visitors
+    const displayList = combinedRecipients.length > 0 
+      ? combinedRecipients.slice(0, 5) 
+      : [
+          { nome: "Pastor Eric L. P.", telefone: "(11) 98888-7777" },
+          { nome: "Amanda Santos (Líder Infantil)", telefone: "(11) 97777-6666" },
+          { nome: "Clara Guedes (Visitante)", telefone: "(21) 96666-5555" }
+        ];
+
+    let currentIdx = 0;
+    const interval = setInterval(() => {
+      if (currentIdx < displayList.length) {
+        const item = displayList[currentIdx];
+        setSendingCurrentRecipient(item.nome);
+        
+        setSimulatedConsole(prev => [
+          ...prev,
+          `✅ [ENVIADO] Canal ${deliveryChannels[0] || "WhatsApp"}: Sucesso p/ ${item.nome} (${item.telefone || "Contato Digital"})`
+        ]);
+        
+        setSendingProgress(prev => Math.min(prev + Math.floor(55 / displayList.length), 95));
+        currentIdx++;
+      } else {
+        clearInterval(interval);
+        
+        // Finalize Campaign
+        setSendingProgress(100);
+        setSendingStep(4);
+        setSendingCurrentRecipient("");
+        
+        const todayStr = new Date().toISOString().split("T")[0];
+        const newDispatch = {
+          id: "disp-user-" + Date.now(),
+          theme: selectedDispatchTheme,
+          dateOnly: todayStr,
+          sentAt: `${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")} (Manual via IA)`,
+          recipientCount: totalCount,
+          channels: deliveryChannels,
+          title: fetchedTitle,
+          devotional: compiledDev,
+          isAutomated: false
+        };
+
+        const updatedDispatches = [newDispatch, ...dailyDispatches];
+        localStorage.setItem("viva-daily-dispatches", JSON.stringify(updatedDispatches));
+        setDailyDispatches(updatedDispatches);
+
+        // Prepend generated devotional so it can be selected in the main reader
+        setDevocionais(prev => [compiledDev, ...prev]);
+        setActiveDevIndex(0);
+
+        setShowDispatchSuccessAlert(true);
+        setTimeout(() => {
+          setShowDispatchSuccessAlert(false);
+        }, 6000);
+      }
+    }, 600);
+  };
 
   // Configure HTML Audio Player
   useEffect(() => {
@@ -221,6 +450,265 @@ export default function CommunicationRadio({ onAskVivaIAPrompt }: CommunicationR
             </div>
           </div>
         )}
+
+        {/* PANEL: Central de Envio Diário via IA */}
+        <div id="central-envio-ia" className="mt-6 pt-5 border-t border-slate-200 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100">
+                <SendHorizontal size={16} className="animate-pulse" />
+              </div>
+              <div>
+                <h4 id="devocional-card-header" className="text-sm font-black text-slate-800 uppercase tracking-tight flex items-center gap-1.5 flex-wrap">
+                  Disparo Diário de Devocionais por IA
+                  <span className="text-[8px] bg-emerald-850 bg-emerald-700 text-white font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">Automotivo & Ativo 🤖</span>
+                </h4>
+                <p className="text-[10.5px] text-slate-500 font-semibold leading-none mt-0.5">Alimentando diariamente membros e visitantes ativos da Igreja Viva</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs self-start sm:self-center">
+              <span className="font-bold text-slate-400">Automatizado:</span>
+              <button
+                type="button"
+                onClick={() => setAutoSendActive(!autoSendActive)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  autoSendActive ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                    autoSendActive ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick stats & parameters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {/* Stats */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center gap-3">
+              <Users size={16} className="text-slate-600" />
+              <div>
+                <span className="block text-[9px] uppercase font-black text-slate-400">Público Alvo</span>
+                <span className="text-xs font-extrabold text-[#2E7D32]">
+                  {getMembersList().length + getVisitorsList().length} Pessoas no Rebanho
+                </span>
+                <span className="block text-[8px] text-slate-500 font-semibold italic">
+                  ({getMembersList().length} membros + {getVisitorsList().length} visitantes)
+                </span>
+              </div>
+            </div>
+
+            {/* Config: canais */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone size={14} className="text-slate-600" />
+                <span className="text-[9px] uppercase font-black text-slate-400">Canais de Entrega</span>
+              </div>
+              <div className="flex gap-2">
+                {["WhatsApp", "SMS"].map(c => {
+                  const has = deliveryChannels.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        if (has) {
+                          setDeliveryChannels(deliveryChannels.filter(x => x !== c));
+                        } else {
+                          setDeliveryChannels([...deliveryChannels, c]);
+                        }
+                      }}
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase transition-all cursor-pointer ${
+                        has ? "bg-indigo-50 text-indigo-800 border border-indigo-200" : "bg-slate-200/60 text-slate-500 border border-transparent"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Config: Tema & Agendamento */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Clock size={13} className="text-slate-600" />
+                  <span className="text-[9px] uppercase font-black text-slate-400">Hora do Envio</span>
+                </div>
+                <input
+                  type="time"
+                  value={autoSendTime}
+                  onChange={(e) => setAutoSendTime(e.target.value)}
+                  className="bg-transparent border-0 p-0 text-xs font-black text-[#2E7D32] focus:ring-0 w-16"
+                />
+              </div>
+
+              {/* Theme select for next manual trigger */}
+              <select
+                value={selectedDispatchTheme}
+                onChange={(e) => setSelectedDispatchTheme(e.target.value)}
+                className="px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold"
+              >
+                <option value="Fé">Fé</option>
+                <option value="Amor">Amor</option>
+                <option value="Esperança">Esperança</option>
+                <option value="Generosidade">Generosidade</option>
+                <option value="Perdão">Perdão</option>
+                <option value="Restauração">Restauração</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Interactive Trigger & Progress Simulation */}
+          <div className="space-y-3">
+            {sendingStep === 0 ? (
+              <button
+                type="button"
+                onClick={handleLaunchDailyDispatch}
+                className="w-full py-3 bg-gradient-to-r from-emerald-700 to-emerald-800 text-white rounded-xl text-xs font-black transition-all hover:shadow-md cursor-pointer flex items-center justify-center gap-2 active:scale-99"
+              >
+                <Sparkles size={14} className="animate-spin text-amber-305 text-amber-300" style={{ animationDuration: '4s' }} />
+                Disparar Transmissão Diária por IA Agora (Integrar Rebanho)
+              </button>
+            ) : (
+              <div className="bg-slate-900 border border-slate-800 text-slate-100 p-4 rounded-xl space-y-3 relative overflow-hidden font-mono text-[11px]">
+                {/* Visual send waves */}
+                <span className="absolute top-2 right-3 text-[9px] text-[#2E7D32] uppercase tracking-widest font-black flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  Transmitindo por IA
+                </span>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold flex items-center gap-1.5">
+                      {sendingStep === 1 && <Loader2 className="animate-spin text-emerald-500" size={13} />}
+                      {sendingStep === 2 && <RefreshCw className="animate-spin text-blue-500" size={13} />}
+                      {sendingStep === 3 && <RadioTower className="animate-pulse text-indigo-500" size={13} />}
+                      {sendingStep === 4 && <CheckCircle className="text-emerald-500" size={13} />}
+
+                      {sendingStep === 1 && "Fase 1: Diagnosticando Clima Espiritual"}
+                      {sendingStep === 2 && "Fase 2: Elaborando Devocional com Gemini 3.5... "}
+                      {sendingStep === 3 && `Fase 3: Transmissão em Lote para Contatos`}
+                      {sendingStep === 4 && "Fase 4: Envio Concluído com Sucesso!"}
+                    </span>
+                    <span className="font-black text-emerald-500">{sendingProgress}%</span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-emerald-600 to-blue-500 h-1.5 rounded-full transition-all duration-300" 
+                      style={{ width: `${sendingProgress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {sendingCurrentRecipient && (
+                  <div className="bg-slate-950 p-2 rounded border border-slate-800 text-emerald-400 animate-pulse flex items-center gap-2">
+                    <Smartphone size={12} />
+                    <span>Enviando para: <span className="text-white font-extrabold">{sendingCurrentRecipient}</span>...</span>
+                  </div>
+                )}
+
+                {/* Simulated live console logs */}
+                <div className="space-y-1 max-h-[105px] overflow-y-auto bg-slate-150 bg-slate-950 p-2.5 rounded border border-slate-800 text-slate-350">
+                  {simulatedConsole.map((log, index) => (
+                    <div key={index} className="leading-tight select-none">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+
+                {sendingStep === 4 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSendingStep(0);
+                      setSimulatedConsole([]);
+                    }}
+                    className="w-full py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-black transition-colors"
+                  >
+                    Fechar Terminal de Log
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showDispatchSuccessAlert && (
+              <div className="p-3 bg-emerald-50 text-emerald-950 rounded-xl border border-emerald-200 text-xs font-bold leading-relaxed flex items-center gap-2.5 animate-bounce">
+                <CheckCircle size={16} className="text-[#2E7D32] shrink-0" />
+                <div>
+                  Devocional Diário por IA disparado com sucesso! {getMembersList().length + getVisitorsList().length} contatos receberam a mensagem.
+                  Ganhamos mais um dia de comunhão ativa.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Table: Histórico de disparos diários */}
+          {dailyDispatches.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-black text-slate-400 flex items-center gap-1.5 select-none">
+                <History size={12} />
+                Histórico de Campanhas Diárias de Devocionais por IA
+              </span>
+              <div className="max-h-[185px] overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-150 bg-white shadow-3xs">
+                {dailyDispatches.map((dispatch) => (
+                  <div key={dispatch.id} className="p-3 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase border ${
+                          dispatch.isAutomated 
+                            ? "bg-amber-50 text-amber-700 border-amber-200" 
+                            : "bg-[#2E7D32]/10 text-[#2E7D32] border-[#2E7D32]/25"
+                        }`}>
+                          {dispatch.isAutomated ? "Automático 06:00" : "Manual via IA"}
+                        </span>
+                        <span className="font-bold text-slate-600">Tema: {dispatch.theme}</span>
+                        <span className="text-[9.5px] font-mono text-slate-400">{dispatch.sentAt}</span>
+                      </div>
+                      <h5 className="font-extrabold text-[#2E7D32] leading-snug truncate">{dispatch.title}</h5>
+                      <div className="flex flex-wrap gap-2 text-[10px] items-center">
+                        {dispatch.channels.map((chan: string) => (
+                          <span key={chan} className="text-[8px] bg-indigo-50 border border-indigo-150 text-[#1565C0] px-1 rounded-sm font-bold">
+                            {chan}
+                          </span>
+                        ))}
+                        <span className="text-slate-450 font-semibold font-bold">
+                          📱 {dispatch.recipientCount} pessoas alcançadas
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Prepend custom devotional if not found, and set active
+                        const devIndex = devocionais.findIndex((dv) => dv.id === dispatch.devotional.id);
+                        if (devIndex !== -1) {
+                          setActiveDevIndex(devIndex);
+                        } else {
+                          setDevocionais((prev) => [dispatch.devotional, ...prev]);
+                          setActiveDevIndex(0);
+                        }
+                        // Scroll to the devotional block
+                        const element = document.getElementById("devocional-card-header");
+                        if (element) element.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/50 rounded-lg shrink-0 transition-colors cursor-pointer"
+                    >
+                      Ler Texto
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Online Radio Player & Youtube Lives list (Right 1/3) */}

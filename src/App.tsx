@@ -10,6 +10,9 @@ import MinistriesScales from "./components/MinistriesScales";
 import CommunicationRadio from "./components/CommunicationRadio";
 import VivaIAChat from "./components/VivaIAChat";
 import TrainingGroups from "./components/TrainingGroups";
+import DonationsModule from "./components/DonationsModule";
+import ChurchBillboard from "./components/ChurchBillboard";
+import MinistriesArea from "./components/MinistriesArea";
 
 import {
   getInitialState,
@@ -23,7 +26,7 @@ import {
 } from "./data";
 
 import { Member, Visitor, FinancialTransaction, EventSchedule, VolunteerScale, PgmCell, TrainingCourse, User, UserLevel } from "./types";
-import { LayoutDashboard, Users, UserCheck, DollarSign, CalendarCheck, GraduationCap, Radio, Bot, LogOut, RadioTower, Eye, EyeOff, Pencil, Check, X } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, DollarSign, CalendarCheck, GraduationCap, Radio, Bot, LogOut, RadioTower, Eye, EyeOff, Pencil, Check, X, Heart, Megaphone, Award } from "lucide-react";
 
 export default function App() {
   // Application Screen state: "splash" | "login" | "app"
@@ -67,6 +70,7 @@ export default function App() {
 
   // Client user session
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isProfileExpanded, setIsProfileExpanded] = useState<boolean>(false);
 
   // Cross-tab interaction context (triggers AI prompts from other actions)
   const [vivaIAPrompt, setVivaIAPrompt] = useState<string>("");
@@ -238,16 +242,45 @@ export default function App() {
           <ChurchLogo size={32} showText={true} />
 
           {/* User profile brief card - Compacto, limpo e profissional */}
-          <div className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#1565C0] text-white flex items-center justify-center font-bold text-[10px] uppercase shadow-inner shrink-0">
-              {currentUser?.nome.charAt(0) || "P"}
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="block text-[11px] font-bold text-slate-800 truncate leading-none mb-0.5">{currentUser?.nome || "Pastor Titular"}</span>
-              <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wide leading-none">
-                {currentUser?.nivel === UserLevel.PASTOR ? "Pastor" : currentUser?.nivel === UserLevel.MEMBRO ? "Membro" : "Visitante"}
+          <div 
+            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+            className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 flex flex-col gap-2 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+            title="Clique para abrir configurações de perfil"
+          >
+            <div className="flex items-center gap-2 w-full">
+              <div className="w-6 h-6 rounded-full bg-[#1565C0] text-white flex items-center justify-center font-bold text-[10px] uppercase shadow-inner shrink-0">
+                {currentUser?.nome?.charAt(0) || "P"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold text-slate-800 truncate leading-none mb-0.5">{currentUser?.nome || "Pastor Titular"}</span>
+                <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wide leading-none">
+                  {currentUser?.nivel === UserLevel.PASTOR ? "Pastor" : currentUser?.nivel === UserLevel.MEMBRO ? "Membro" : "Visitante"}
+                </span>
+              </div>
+              <span className="text-[9px] text-slate-450 font-bold transition-transform duration-200">
+                {isProfileExpanded ? "▲" : "▼"}
               </span>
             </div>
+
+            {isProfileExpanded && (
+              <div 
+                onClick={(e) => e.stopPropagation()} 
+                className="mt-1 pt-2 border-t border-slate-200/60 flex flex-col gap-2 text-xs"
+              >
+                <div className="flex items-center justify-between text-[8px] text-slate-400 font-black uppercase tracking-wider">
+                  <span>Ajustes de Perfil / Painel</span>
+                </div>
+                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-700 cursor-pointer hover:text-slate-900 select-none">
+                  <input
+                    type="checkbox"
+                    checked={hideFinancialValues}
+                    onChange={handleToggleHideFinancial}
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-650 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span>Apresentação Segura (Visitas)</span>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Navigation Links layout - Categorized as per ministerial UX audit */}
@@ -269,7 +302,20 @@ export default function App() {
                   }`}
                 >
                   <LayoutDashboard size={14} /> 
-                  <span>{churchMode === "small" ? "Início & Pastoral" : "Painel Geral"}</span>
+                  <span>{churchMode === "small" ? "Início & Pastora" : "Painel Geral"}</span>
+                </button>
+
+                {/* Nav: Mural Principal */}
+                <button
+                  onClick={() => setActiveTab("mural")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === "mural"
+                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <Megaphone size={14} className={activeTab === "mural" ? "text-[#2E7D32]" : ""} /> 
+                  <span>Mural Principal</span>
                 </button>
 
                 {/* Nav: Membros */}
@@ -311,6 +357,19 @@ export default function App() {
                   <span>{churchMode === "small" ? "Caixa da Igreja" : "Financeiro"}</span>
                 </button>
 
+                {/* Nav: Doações */}
+                <button
+                  onClick={() => setActiveTab("doacoes")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === "doacoes"
+                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
+                      : "text-slate-500 hover:text-[#1B7A2D] hover:bg-slate-50/50"
+                  }`}
+                >
+                  <Heart size={14} className={activeTab === "doacoes" ? "text-[#1B7A2D] fill-[#1B7A2D]" : ""} /> 
+                  <span>Doações & PIX</span>
+                </button>
+
                 {/* Nav: Viva IA */}
                 <button
                   onClick={() => setActiveTab("viva-ia")}
@@ -335,6 +394,19 @@ export default function App() {
                 Menu Ministerial
               </span>
               <nav className="space-y-0.5">
+                {/* Nav: Ministérios */}
+                <button
+                  onClick={() => setActiveTab("ministerios")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === "ministerios"
+                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <Award size={14} className={activeTab === "ministerios" ? "text-[#2E7D32]" : ""} /> 
+                  <span>Ministérios</span>
+                </button>
+
                 {/* Nav: Escalas e Agenda */}
                 <button
                   onClick={() => setActiveTab("escalas")}
@@ -576,6 +648,7 @@ export default function App() {
               churchMode={churchMode}
               hideFinancialValues={hideFinancialValues}
               onToggleHideFinancial={handleToggleHideFinancial}
+              currentUser={currentUser}
             />
           )}
 
@@ -585,6 +658,24 @@ export default function App() {
               onAddMember={handleAddMember}
               onUpdateMember={handleUpdateMember}
               onRemoveMember={handleRemoveMember}
+            />
+          )}
+
+          {activeTab === "mural" && (
+            <ChurchBillboard
+              events={events}
+              scales={scales}
+              currentUser={currentUser}
+              onAddEvent={handleAddEvent}
+            />
+          )}
+
+          {activeTab === "ministerios" && (
+            <MinistriesArea
+              members={members}
+              scales={scales}
+              events={events}
+              currentUser={currentUser}
             />
           )}
 
@@ -605,6 +696,10 @@ export default function App() {
               onAddTransaction={handleAddTransaction}
               hideFinancialValues={hideFinancialValues}
             />
+          )}
+
+          {activeTab === "doacoes" && (
+            <DonationsModule />
           )}
 
           {activeTab === "escalas" && (
@@ -631,7 +726,11 @@ export default function App() {
           )}
 
           {activeTab === "devocional" && (
-            <CommunicationRadio onAskVivaIAPrompt={handleAskVivaIAPrompt} />
+            <CommunicationRadio 
+              onAskVivaIAPrompt={handleAskVivaIAPrompt} 
+              members={members}
+              visitors={visitors}
+            />
           )}
 
           {activeTab === "viva-ia" && (
@@ -657,6 +756,16 @@ export default function App() {
         </button>
 
         <button
+          onClick={() => setActiveTab("mural")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
+            activeTab === "mural" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          <Megaphone size={19} className={activeTab === "mural" ? "text-[#2E7D32] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Mural</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("membros")}
           className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
             activeTab === "membros" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
@@ -673,7 +782,17 @@ export default function App() {
           }`}
         >
           <DollarSign size={19} className={activeTab === "financeiro" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Financeiro</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Finanças</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("doacoes")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
+            activeTab === "doacoes" ? "text-[#1B7A2D]" : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          <Heart size={19} className={activeTab === "doacoes" ? "text-[#1B7A2D] fill-[#1B7A2D] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Doar</span>
         </button>
 
         <button
@@ -684,6 +803,16 @@ export default function App() {
         >
           <CalendarCheck size={19} className={activeTab === "escalas" ? "stroke-[2.5]" : "stroke-[1.8]"} />
           <span className="text-[9px] font-bold mt-1 tracking-tight">Escalas</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("ministerios")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
+            activeTab === "ministerios" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          <Award size={19} className={activeTab === "ministerios" ? "stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Ministérios</span>
         </button>
 
         <button

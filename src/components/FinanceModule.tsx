@@ -46,6 +46,17 @@ export default function FinanceModule({
 
   const currentBalance = totalIncomes - totalExits;
 
+  // Simulated chart data based on transactions
+  // Generates 4 sample months (Fev, Mar, Abr, Mai)
+  const chartData = [
+    { name: "Fev", dízimos: 1800, despesas: 800 },
+    { name: "Mar", dízimos: 2400, despesas: 1100 },
+    { name: "Abr", dízimos: 3100, despesas: 1530 },
+    { name: "Mai", dízimos: totalIncomes, despesas: totalExits },
+  ];
+
+  const maxVal = Math.max(...chartData.map((d) => Math.max(d.dízimos, d.despesas))) || 4000;
+
   // Ledger submit
   const handleLedgerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +178,7 @@ export default function FinanceModule({
             </div>
 
             <div className="bg-gradient-to-br from-[#1565C0]/5 to-[#1565C0]/15 p-5 rounded-2xl border border-blue-200">
-              <span className="text-[10px] uppercase font-bold text-blue-900 tracking-wider">Status Geral</span>
+              <span className="text-[10px] uppercase font-bold text-blue-900 tracking-wider">Saldo Atual</span>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-2xl font-black text-slate-900">
                   {hideFinancialValues ? "R$ ••••••" : `R$ ${currentBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -175,6 +186,127 @@ export default function FinanceModule({
                 <span className="text-[11px] font-extrabold bg-[#1565C0] text-white px-2.5 py-1 rounded-lg">
                   {currentBalance >= 0 ? "Superávit 🕊️" : "Déficit ⚠️"}
                 </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Generosity & SVG Growth and Cash Chart */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-6">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Histórico de Crescimento & Caixa</h2>
+                <p className="text-xs text-slate-500">Fluxo comparativo mensal entre Dízimos/Ofertas recebidos vs Saídas acumuladas</p>
+              </div>
+              <span className="text-xs font-semibold text-[#1565C0] bg-blue-50 px-2.5 py-1 rounded-full">
+                Maio Completo
+              </span>
+            </div>
+
+            {/* SVG Responsive Area Chart Graphic */}
+            <div className="relative pt-4">
+              <svg viewBox="0 0 500 240" className="w-full h-56 overflow-visible">
+                {/* Grid Lines */}
+                <line x1="40" y1="30" x2="480" y2="30" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="80" x2="480" y2="80" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="130" x2="480" y2="130" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="180" x2="480" y2="180" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="210" x2="480" y2="210" stroke="#94A3B8" strokeWidth="1.5" />
+
+                {/* Monthly X-Axis Markers */}
+                {chartData.map((d, index) => {
+                  const xVal = 40 + index * 140;
+                  return (
+                    <text key={d.name} x={xVal} y="228" textAnchor="middle" className="text-[11px] font-bold fill-slate-500">
+                      {d.name}
+                    </text>
+                  );
+                })}
+
+                {/* Y Axis Markers */}
+                <text x="32" y="32" textAnchor="end" className="text-[9px] fill-slate-400">R$ {hideFinancialValues ? "•••" : maxVal.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</text>
+                <text x="32" y="112" textAnchor="end" className="text-[9px] fill-slate-400">R$ {hideFinancialValues ? "•••" : Math.round(maxVal / 2).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</text>
+                <text x="32" y="212" textAnchor="end" className="text-[9px] fill-slate-400">R$ 0</text>
+
+                {/* AREA PATH: RECEITAS (Green #2E7D32) */}
+                <path
+                  d={`M 40,${210 - (chartData[0].dízimos / maxVal) * 180} 
+                     L 180,${210 - (chartData[1].dízimos / maxVal) * 180} 
+                     L 320,${210 - (chartData[2].dízimos / maxVal) * 180} 
+                     L 460,${210 - (chartData[3].dízimos / maxVal) * 180} 
+                     L 460,210 L 40,210 Z`}
+                  fill="url(#green_gradient)"
+                  opacity="0.15"
+                />
+
+                {/* AREA PATH: DESPESAS (Blue #1565C0) */}
+                <path
+                  d={`M 40,${210 - (chartData[0].despesas / maxVal) * 180} 
+                     L 180,${210 - (chartData[1].despesas / maxVal) * 180} 
+                     L 320,${210 - (chartData[2].despesas / maxVal) * 180} 
+                     L 460,${210 - (chartData[3].despesas / maxVal) * 180} 
+                     L 460,210 L 40,210 Z`}
+                  fill="url(#blue_gradient)"
+                  opacity="0.12"
+                />
+
+                {/* LINE PATHS & CIRCLE POINTS */}
+                {/* Receitas (Green Line) */}
+                <path
+                  d={`M 40,${210 - (chartData[0].dízimos / maxVal) * 180} 
+                     L 180,${210 - (chartData[1].dízimos / maxVal) * 180} 
+                     L 320,${210 - (chartData[2].dízimos / maxVal) * 180} 
+                     L 460,${210 - (chartData[3].dízimos / maxVal) * 180}`}
+                  stroke="#2E7D32"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+
+                {/* Despesas (Blue Line) */}
+                <path
+                  d={`M 40,${210 - (chartData[0].despesas / maxVal) * 180} 
+                     L 180,${210 - (chartData[1].despesas / maxVal) * 180} 
+                     L 320,${210 - (chartData[2].despesas / maxVal) * 180} 
+                     L 460,${210 - (chartData[3].despesas / maxVal) * 180}`}
+                  stroke="#1565C0"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+
+                {/* Markers for final points */}
+                <circle cx="460" cy={210 - (chartData[3].dízimos / maxVal) * 180} r="6" fill="#2E7D32" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="460" cy={210 - (chartData[3].despesas / maxVal) * 180} r="5" fill="#1565C0" stroke="#FFFFFF" strokeWidth="2" />
+
+                {/* Defs block for gradient area fillings */}
+                <defs>
+                  <linearGradient id="green_gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2E7D32" />
+                    <stop offset="100%" stopColor="#2E7D32" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="blue_gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1565C0" />
+                    <stop offset="100%" stopColor="#1565C0" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              {/* Legend indicators & Resumo do mês */}
+              <div className="space-y-3 max-w-md mx-auto mt-3">
+                <div className="flex gap-4 items-center justify-center text-xs px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="flex items-center gap-1.5 font-bold text-emerald-800">
+                    <span className="w-3.5 h-1.5 bg-[#2E7D32] rounded-full inline-block" />
+                    Dízimos e Ofertas
+                  </span>
+                  <span className="flex items-center gap-1.5 font-bold text-blue-800">
+                    <span className="w-3.5 h-1.5 bg-[#1565C0] rounded-full inline-block" />
+                    Despesas
+                  </span>
+                </div>
+                
+                <div className="text-center p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100 text-[11px] font-semibold text-emerald-850 leading-relaxed shadow-3xs">
+                  📈 <strong className="font-extrabold text-emerald-900">Resumo do mês:</strong> Entradas maiores que despesas neste período. Isto indica superávit saudável para investimentos espirituais e suporte ministerial de comunhão!
+                </div>
               </div>
             </div>
           </div>

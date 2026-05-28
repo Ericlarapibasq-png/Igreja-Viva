@@ -106,6 +106,91 @@ export default function VivaIAChat({ initialPrompt, onClearInitialPrompt }: Viva
     }
   };
 
+  const downloadAsWord = (text: string, filenameSuffix?: string) => {
+    try {
+      const formattedTitle = filenameSuffix ? `Viva IA - ${filenameSuffix}` : "Planejamento Ministerial - Viva IA";
+      const formattedHtml = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <title>${formattedTitle}</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333333; }
+            h1 { color: #2E7D32; border-bottom: 2px solid #2E7D32; padding-bottom: 5px; font-size: 20pt; font-family: 'Georgia', serif; }
+            h2 { color: #1565C0; font-size: 15pt; margin-top: 20px; font-family: 'Georgia', serif; }
+            h3 { color: #374151; font-size: 13pt; margin-top: 15px; }
+            p { font-size: 11pt; margin-bottom: 8px; }
+            li { font-size: 11pt; margin-bottom: 4px; }
+            strong { color: #2E7D32; font-weight: bold; }
+            .footer { font-size: 9pt; color: #777777; margin-top: 50px; border-top: 1px solid #dddddd; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>DIRETRIZES E PLANEJAMENTO MINISTERIAL</h1>
+          <p><i>Gerado eletronicamente pela Viva IA Pastoral em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</i></p>
+          <hr/>
+          ${text
+            .split("\n")
+            .map((line) => {
+              if (line.startsWith("# ")) return `<h1>${line.substring(2)}</h1>`;
+              if (line.startsWith("## ")) return `<h2>${line.substring(3)}</h2>`;
+              if (line.startsWith("### ")) return `<h3>${line.substring(4)}</h3>`;
+              if (line.startsWith("* ") || line.startsWith("- ")) return `<li>${line.substring(2)}</li>`;
+              if (line.trim() === "") return "<br/>";
+              const boldFormatted = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+              return `<p>${boldFormatted}</p>`;
+            })
+            .join("\n")}
+          <div class="footer">
+            <p>Igreja Viva - Tecnologia a serviço do Reino de Deus</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(["\ufeff" + formattedHtml], { type: "application/msword;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Viva_IA_Planejamento_${filenameSuffix || "Sessao"}.doc`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erro ao gerar arquivo Word:", err);
+    }
+  };
+
+  const downloadEntireHistoryAsWord = () => {
+    if (messages.length <= 1) {
+      alert("Ainda não há histórico de planejamento suficiente para exportar.");
+      return;
+    }
+    
+    const combinedText = messages
+      .map((m) => {
+        const timeHeader = m.role === "user" ? "👨‍💻 SEÇÃO: DIRETRIZ OU PERGUNTA DO PASTOR" : "🕊️ SEÇÃO: DIRETRIZES DE PLANEJAMENTO DA VIVA IA";
+        return `## ${timeHeader}\n\n${m.text}\n\n---\n`;
+      })
+      .join("\n");
+      
+    downloadAsWord(combinedText, "Historico_Completo");
+  };
+
+  const downloadEntireHistoryAsPDF = () => {
+    if (messages.length <= 1) {
+      alert("Ainda não há histórico de planejamento suficiente para exportar.");
+      return;
+    }
+    
+    const combinedText = messages
+      .map((m) => {
+        const timeHeader = m.role === "user" ? "=== DIRETRIZ DO PASTOR ===" : "=== PLANEJAMENTO VIVA IA ===";
+        return `\n${timeHeader}\n\n${m.text}\n\n-------------------------\n`;
+      })
+      .join("\n");
+      
+    downloadAsPDF(combinedText);
+  };
+
   const downloadAsPowerPointOutline = (text: string) => {
     try {
       const lines = text.split("\n");
@@ -444,7 +529,7 @@ export default function VivaIAChat({ initialPrompt, onClearInitialPrompt }: Viva
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col h-[520px] overflow-hidden">
+    <div id="i-viva-app" className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col h-[520px] overflow-hidden">
       {/* Dynamic Header */}
       <div className="p-4 bg-slate-50 border-b border-slate-150 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
@@ -460,13 +545,36 @@ export default function VivaIAChat({ initialPrompt, onClearInitialPrompt }: Viva
           </div>
         </div>
 
-        <button
-          onClick={clearChatHistory}
-          title="Limpar conversa"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-        >
-          <Trash2 size={15} />
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {messages.length > 1 && (
+            <div className="flex items-center gap-1.5 border-r border-slate-200 pr-2 mr-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight hidden md:inline-block">Conversa Completa:</span>
+              <button
+                type="button"
+                onClick={downloadEntireHistoryAsPDF}
+                title="Sessão completa em formato PDF"
+                className="px-2 py-1 bg-white hover:bg-emerald-50 rounded-lg text-[10px] font-bold text-emerald-800 border border-emerald-250 flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <FileText size={11} /> Exportar PDF
+              </button>
+              <button
+                type="button"
+                onClick={downloadEntireHistoryAsWord}
+                title="Sessão completa em formato MS Word"
+                className="px-2 py-1 bg-white hover:bg-blue-50 rounded-lg text-[10px] font-bold text-blue-800 border border-blue-250 flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <FileText size={11} /> Exportar Word
+              </button>
+            </div>
+          )}
+          <button
+            onClick={clearChatHistory}
+            title="Limpar conversa"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Messages Canvas */}
@@ -500,6 +608,14 @@ export default function VivaIAChat({ initialPrompt, onClearInitialPrompt }: Viva
                         title="Salvar em formato PDF"
                       >
                         <FileText size={11} /> Salvar PDF
+                      </button>
+                      <button
+                        onClick={() => downloadAsWord(m.text)}
+                        type="button"
+                        className="px-2.5 py-1 text-[10px] text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg font-bold flex items-center gap-1 transition-colors border border-indigo-200/40 cursor-pointer"
+                        title="Salvar em formato Word"
+                      >
+                        <FileText size={11} /> Salvar Word (Doc)
                       </button>
                       <button
                         onClick={() => downloadAsPowerPointOutline(m.text)}
