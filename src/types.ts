@@ -145,3 +145,16 @@ export interface TrainingCourse {
   progressoConcluintes: number;
 }
 
+export interface Congregado {
+  id: string;
+  nome: string;
+  telefone: string;
+  whatsapp: string;
+  endereco: string;
+  dataNascimento: string;
+  pgmParticipacao?: string;
+  observacoes?: string;
+  dataCadastro: string;
+}
+
+

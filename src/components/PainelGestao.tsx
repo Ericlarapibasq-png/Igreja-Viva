@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Member, Visitor, FinancialTransaction, EventSchedule, User, VolunteerScale } from "../types";
+import { Member, Visitor, FinancialTransaction, EventSchedule, User, VolunteerScale, Congregado } from "../types";
 import { 
   Users, UserPlus, TrendingUp, Calendar, AlertTriangle, MessageSquareCode, 
   Heart, DollarSign, ArrowUpRight, ArrowDownRight, Sparkles, BookOpen, 
@@ -108,8 +108,135 @@ export default function PainelGestao({
   ministryNames,
   onUpdateMinistryName,
 }: PainelGestaoProps) {
-  // Tabs: "estatisticas" | "financeiro" | "visitantes" | "administracao" | "relatorios"
-  const [activeSubTab, setActiveSubTab] = useState<"estatisticas" | "financeiro" | "visitantes" | "administracao" | "relatorios">("estatisticas");
+  // Tabs: "estatisticas" | "financeiro" | "visitantes" | "administracao" | "relatorios" | "congregados"
+  const [activeSubTab, setActiveSubTab] = useState<"estatisticas" | "financeiro" | "visitantes" | "administracao" | "relatorios" | "congregados">("estatisticas");
+
+  // Congregados states
+  const [congregados, setCongregados] = useState<Congregado[]>(() => {
+    const saved = localStorage.getItem("viva-saved-congregados");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error loading congregados:", e);
+      }
+    }
+    const mockCongregados: Congregado[] = [
+      {
+        id: "cong-01",
+        nome: "Renato Souza Santos",
+        telefone: "(11) 99887-6655",
+        whatsapp: "(11) 99887-6655",
+        endereco: "Rua das Amoreiras, 142 - São Paulo, SP",
+        dataNascimento: "1994-08-22",
+        pgmParticipacao: "PGM Videira Sede",
+        observacoes: "Frequenta o culto regularmente, demonstrou desejo de fazer o curso de integração e batismo.",
+        dataCadastro: "2026-04-15"
+      },
+      {
+        id: "cong-02",
+        nome: "Beatriz Oliveira Lima",
+        telefone: "(11) 98712-3456",
+        whatsapp: "(11) 98712-3456",
+        endereco: "Av. Rebouças, 2500 - Pinheiros, São Paulo",
+        dataNascimento: "1991-03-30",
+        pgmParticipacao: "PGM Ebenezer Consolação",
+        observacoes: "Pretende transferir-se do interior, participativa e ajuda voluntariamente no café da recepção.",
+        dataCadastro: "2026-05-10"
+      }
+    ];
+    localStorage.setItem("viva-saved-congregados", JSON.stringify(mockCongregados));
+    return mockCongregados;
+  });
+
+  const [isCongFormOpen, setIsCongFormOpen] = useState(false);
+  const [editingCongregado, setEditingCongregado] = useState<Congregado | null>(null);
+  const [congNome, setCongNome] = useState("");
+  const [congTelefone, setCongTelefone] = useState("");
+  const [congWhatsapp, setCongWhatsapp] = useState("");
+  const [congEndereco, setCongEndereco] = useState("");
+  const [congBirth, setCongBirth] = useState("");
+  const [congPgm, setCongPgm] = useState("");
+  const [congObs, setCongObs] = useState("");
+  const [congSearch, setCongSearch] = useState("");
+
+  const resetCongForm = () => {
+    setCongNome("");
+    setCongTelefone("");
+    setCongWhatsapp("");
+    setCongEndereco("");
+    setCongBirth("");
+    setCongPgm("");
+    setCongObs("");
+    setEditingCongregado(null);
+    setIsCongFormOpen(false);
+  };
+
+  const handleOpenCongForm = () => {
+    resetCongForm();
+    setIsCongFormOpen(true);
+  };
+
+  const handleEditCongOpen = (c: Congregado) => {
+    setEditingCongregado(c);
+    setCongNome(c.nome);
+    setCongTelefone(c.telefone);
+    setCongWhatsapp(c.whatsapp);
+    setCongEndereco(c.endereco);
+    setCongBirth(c.dataNascimento);
+    setCongPgm(c.pgmParticipacao || "");
+    setCongObs(c.observacoes || "");
+    setIsCongFormOpen(true);
+  };
+
+  const handleSaveCongregado = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!congNome.trim()) {
+      alert("O nome do congregado é obrigatório!");
+      return;
+    }
+
+    let updatedList: Congregado[];
+
+    if (editingCongregado) {
+      const updated: Congregado = {
+        ...editingCongregado,
+        nome: congNome,
+        telefone: congTelefone,
+        whatsapp: congWhatsapp,
+        endereco: congEndereco,
+        dataNascimento: congBirth,
+        pgmParticipacao: congPgm,
+        observacoes: congObs,
+      };
+      updatedList = congregados.map(item => item.id === editingCongregado.id ? updated : item);
+    } else {
+      const created: Congregado = {
+        id: "cong-" + Date.now(),
+        nome: congNome,
+        telefone: congTelefone,
+        whatsapp: congWhatsapp,
+        endereco: congEndereco,
+        dataNascimento: congBirth,
+        pgmParticipacao: congPgm,
+        observacoes: congObs,
+        dataCadastro: new Date().toISOString().split("T")[0],
+      };
+      updatedList = [created, ...congregados];
+    }
+
+    setCongregados(updatedList);
+    localStorage.setItem("viva-saved-congregados", JSON.stringify(updatedList));
+    resetCongForm();
+  };
+
+  const handleRemoveCongregado = (id: string) => {
+    if (confirm("Deseja realmente remover este congregado?")) {
+      const updatedList = congregados.filter(item => item.id !== id);
+      setCongregados(updatedList);
+      localStorage.setItem("viva-saved-congregados", JSON.stringify(updatedList));
+    }
+  };
 
   // Pastoral admin data
   const [customPastorals, setCustomPastorals] = useState<PastoralLetter[]>([]);
@@ -356,6 +483,16 @@ Evite termos empresariais ou frios. Retorne apenas o texto de forma limpa, diret
 
   const highestValue = Math.max(...monthsData.map(m => Math.max(m.receitas, m.despesas))) || 5000;
 
+  const filteredCongregados = congregados.filter(c => {
+    const term = congSearch.toLowerCase();
+    return (
+      c.nome.toLowerCase().includes(term) ||
+      c.telefone.includes(term) ||
+      (c.pgmParticipacao && c.pgmParticipacao.toLowerCase().includes(term)) ||
+      (c.endereco && c.endereco.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <div className="space-y-5 sm:space-y-8 max-w-5xl mx-auto px-0 sm:px-4">
       {/* Visual Subtabs for Painel de Gestão - Centered as per user request */}
@@ -392,6 +529,17 @@ Evite termos empresariais ou frios. Retorne apenas o texto de forma limpa, diret
         >
           <UserCheck size={14} />
           Visitantes
+        </button>
+        <button
+          onClick={() => setActiveSubTab("congregados")}
+          className={`flex-1 py-2.5 px-3 rounded-lg text-[11px] font-bold transition-all text-center flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            activeSubTab === "congregados"
+              ? "bg-[#1E4D2B] text-white shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <Smile size={14} />
+          Congregados
         </button>
         <button
           onClick={() => setActiveSubTab("administracao")}
@@ -436,28 +584,51 @@ Evite termos empresariais ou frios. Retorne apenas o texto de forma limpa, diret
           </div>
 
           {/* Quick Metrics KPI cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              type="button"
+              onClick={() => onNavigateToTab("membros")}
+              className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs cursor-pointer hover:border-emerald-300 hover:bg-slate-50/50 transition-all hover:scale-[1.01] text-left"
+            >
               <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg shrink-0">
                 <Users size={20} />
               </div>
               <div className="min-w-0">
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total de Membros</span>
                 <span className="text-xl font-extrabold text-slate-950 leading-none">{activeMembersNum}</span>
-                <span className="block text-[9px] text-slate-400 truncate mt-0.5">Cadastrados ativos</span>
+                <span className="block text-[9px] text-[#1E4D2B] font-semibold truncate mt-0.5">Ver Lista Geral →</span>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs">
+            <button
+              type="button"
+              onClick={() => setActiveSubTab("visitantes")}
+              className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs cursor-pointer hover:border-blue-300 hover:bg-slate-50/50 transition-all hover:scale-[1.01] text-left"
+            >
               <div className="p-2.5 bg-blue-50 text-[#1565C0] rounded-lg shrink-0">
                 <UserPlus size={20} />
               </div>
               <div className="min-w-0">
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Novos Visitantes</span>
                 <span className="text-xl font-extrabold text-slate-950 leading-none">{recentVisitorsNum}</span>
-                <span className="block text-[9px] text-blue-650 font-semibold truncate mt-0.5">{pendingVisitors.length} pendentes</span>
+                <span className="block text-[9px] text-blue-650 font-semibold truncate mt-0.5">Gerenciar Visitas →</span>
               </div>
-            </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveSubTab("congregados")}
+              className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs cursor-pointer hover:border-teal-300 hover:bg-slate-50/50 transition-all hover:scale-[1.01] text-left"
+            >
+              <div className="p-2.5 bg-teal-50 text-teal-700 rounded-lg shrink-0">
+                <Smile size={20} />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Congregados</span>
+                <span className="text-xl font-extrabold text-slate-950 leading-none">{congregados.length}</span>
+                <span className="block text-[9px] text-teal-700 font-semibold truncate mt-0.5">Cadastrar & Gerir →</span>
+              </div>
+            </button>
 
             <div className="bg-white p-4 rounded-xl border border-slate-150 flex items-center gap-3 shadow-3xs">
               <div className="p-2.5 bg-amber-50 text-amber-700 rounded-lg shrink-0">
@@ -797,6 +968,283 @@ Evite termos empresariais ou frios. Retorne apenas o texto de forma limpa, diret
               <p className="text-[11px] text-slate-705 leading-relaxed font-semibold">
                 Você está autenticado como <strong>{currentUser?.nome || "Pastor Titular"}</strong> com credenciais nível <span className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-800 font-extrabold text-[9.5px]">PASTORAL / ADMIN</span>. Este privilégio concede permissão total para a administração completa da igreja.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === "congregados" && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 relative overflow-hidden shadow-xs">
+            <div className="absolute top-[-40%] right-[-10%] w-[35%] h-[80%] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="z-10 relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1 bg-emerald-50 text-[#1E4D2B] border border-emerald-100/50 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                  👥 Liderança & Secretaria
+                </span>
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                  Cadastro de Congregados
+                </h1>
+                <p className="text-slate-500 text-xs font-medium max-w-2xl leading-relaxed">
+                  Gerencie as pessoas que frequentam regularmente a comunidade, participam de PGMs e estão em processo de consolidação, mas ainda não constam como membros do rol oficial.
+                </p>
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleOpenCongForm}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1E4D2B] hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-3xs cursor-pointer transition-all shrink-0 hover:scale-[1.01]"
+              >
+                <UserPlus size={14} /> Cadastrar Congregado
+              </button>
+            </div>
+          </div>
+
+          {/* Form Modal / Collapsible Section */}
+          {isCongFormOpen && (
+            <div className="bg-white p-6 rounded-2xl border-2 border-emerald-600/30 shadow-md space-y-4">
+              <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <Smile className="text-emerald-700" size={16} />
+                    {editingCongregado ? "Editar Cadastro de Congregado" : "Ficha de Novo Congregado"}
+                  </h3>
+                  <p className="text-xs text-slate-500">Preencha os dados socio-eclesiásticos do congregado</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetCongForm}
+                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCongregado} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nome Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={congNome}
+                      onChange={(e) => setCongNome(e.target.value)}
+                      placeholder="Ex: João da Silva Santos"
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={congBirth}
+                      onChange={(e) => setCongBirth(e.target.value)}
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Telefone Residencial</label>
+                    <input
+                      type="text"
+                      value={congTelefone}
+                      onChange={(e) => setCongTelefone(e.target.value)}
+                      placeholder="Ex: (11) 99999-9999"
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">WhatsApp</label>
+                    <input
+                      type="text"
+                      value={congWhatsapp}
+                      onChange={(e) => setCongWhatsapp(e.target.value)}
+                      placeholder="Ex: (11) 99999-9999"
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Endereço Residencial</label>
+                    <input
+                      type="text"
+                      value={congEndereco}
+                      onChange={(e) => setCongEndereco(e.target.value)}
+                      placeholder="Ex: Rua, Número, Bairro - Cidade, UF"
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Participação no PGM</label>
+                    <select
+                      value={congPgm}
+                      onChange={(e) => setCongPgm(e.target.value)}
+                      className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-850"
+                    >
+                      <option value="">Nenhum PGM (Ainda não participa)</option>
+                      <option value="PGM Videira Sede">PGM Videira Sede</option>
+                      <option value="PGM Ebenezer Consolação">PGM Ebenezer Consolação</option>
+                      <option value="PGM Betel Centro">PGM Betel Centro</option>
+                      <option value="PGM Getsêmani">PGM Getsêmani</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Observações do Pastor / Líder</label>
+                  <textarea
+                    rows={3}
+                    value={congObs}
+                    onChange={(e) => setCongObs(e.target.value)}
+                    placeholder="Registre pontos de atenção pastoral, intenção de batismo ou integração, andamento de visitas, etc."
+                    className="w-full text-xs font-bold bg-white border border-slate-250 p-3 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-slate-800"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={resetCongForm}
+                    className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-[#1E4D2B] hover:bg-emerald-900 text-white shadow-xs transition-colors cursor-pointer"
+                  >
+                    {editingCongregado ? "Salvar Alterações" : "Cadastrar Congregado"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* List Section */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase">Todos os Congregados Cadastrados</h3>
+                <p className="text-xs text-slate-500">Total cadastrado: <span className="font-extrabold text-[#1E4D2B]">{congregados.length} pessoas</span></p>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  value={congSearch}
+                  onChange={(e) => setCongSearch(e.target.value)}
+                  placeholder="Buscar congregado..."
+                  className="w-full text-xs font-bold bg-slate-50/50 border border-slate-200 py-2 px-3 pr-10 rounded-xl focus:outline-none focus:border-emerald-600 focus:bg-white text-slate-800"
+                />
+                <span className="absolute right-3 top-2.5 text-slate-400">🔍</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              {filteredCongregados.length > 0 ? (
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-slate-150 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 header-row">
+                      <th className="py-3 px-4 font-extrabold text-slate-500">Nome Completo</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-500">Contato (WhatsApp)</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-500">Endereço Residencial</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-500">PGM Ativo</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-500">Data Cadastro</th>
+                      <th className="py-3 px-4 font-extrabold text-slate-500 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredCongregados.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="py-3.5 px-4 align-top">
+                          <div className="font-extrabold text-slate-950 text-xs">{c.nome}</div>
+                          {c.dataNascimento && (
+                            <span className="text-[10px] text-slate-400 font-semibold block mt-1">
+                              🎂 Nasc: {c.dataNascimento.split("-").reverse().join("/")}
+                            </span>
+                          )}
+                          {c.observacoes && (
+                            <p className="text-[10px] text-slate-500 italic mt-1.5 max-w-sm line-clamp-2 leading-relaxed">
+                              "{c.observacoes}"
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 align-top text-xs font-medium text-slate-600">
+                          <div className="flex flex-col gap-0.5">
+                            {c.whatsapp && (
+                              <span className="font-bold text-slate-800 flex items-center gap-1">
+                                💬 {c.whatsapp}
+                              </span>
+                            )}
+                            {c.telefone && c.telefone !== c.whatsapp && (
+                              <span className="text-slate-400 flex items-center gap-1">
+                                📞 {c.telefone}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 align-top text-xs text-slate-600 max-w-xs font-medium">
+                          {c.endereco || <span className="text-slate-300 italic">Não informado</span>}
+                        </td>
+                        <td className="py-3.5 px-4 align-top">
+                          {c.pgmParticipacao ? (
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/50 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">
+                              🏡 {c.pgmParticipacao}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic font-semibold">Sem PGM</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 align-top text-xs text-slate-400 font-semibold">
+                          {c.dataCadastro.split("-").reverse().join("/")}
+                        </td>
+                        <td className="py-3.5 px-4 align-top text-right text-xs">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCongOpen(c)}
+                              className="p-1 px-2.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[10px] transition-all cursor-pointer border border-amber-200/50 flex items-center gap-0.5"
+                              title="Editar cadastro"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCongregado(c.id)}
+                              className="p-1 px-2 text-red-700 hover:bg-red-50 hover:text-red-900 font-bold text-[10px] rounded transition-all cursor-pointer"
+                              title="Excluir cadastro"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-12 space-y-2">
+                  <div className="text-slate-300 text-3xl">👥</div>
+                  <p className="text-xs text-slate-500 font-semibold italic">Nenhum congregado encontrado.</p>
+                  {congSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCongSearch("")}
+                      className="text-emerald-700 hover:underline font-bold text-[10px] uppercase"
+                    >
+                      Limpar filtro de busca
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
