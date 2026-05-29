@@ -3,6 +3,7 @@ import SplashScreen from "./components/SplashScreen";
 import LoginScreen from "./components/LoginScreen";
 import ChurchLogo from "./components/ChurchLogo";
 import DashboardKPIs from "./components/DashboardKPIs";
+import PainelGestao from "./components/PainelGestao";
 import MemberManager from "./components/MemberManager";
 import VisitorTracker from "./components/VisitorTracker";
 import FinanceModule from "./components/FinanceModule";
@@ -13,6 +14,7 @@ import TrainingGroups from "./components/TrainingGroups";
 import DonationsModule from "./components/DonationsModule";
 import ChurchBillboard from "./components/ChurchBillboard";
 import MinistriesArea from "./components/MinistriesArea";
+import StoreAffiliates from "./components/StoreAffiliates";
 
 import {
   getInitialState,
@@ -26,11 +28,14 @@ import {
 } from "./data";
 
 import { Member, Visitor, FinancialTransaction, EventSchedule, VolunteerScale, PgmCell, TrainingCourse, User, UserLevel } from "./types";
-import { LayoutDashboard, Users, UserCheck, DollarSign, CalendarCheck, GraduationCap, Radio, Bot, LogOut, RadioTower, Eye, EyeOff, Pencil, Check, X, Heart, Megaphone, Award } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, DollarSign, CalendarCheck, GraduationCap, Radio, Bot, LogOut, RadioTower, Eye, EyeOff, Pencil, Check, X, Heart, Megaphone, Award, Home, Menu, ShoppingBag } from "lucide-react";
 
 export default function App() {
   // Application Screen state: "splash" | "login" | "app"
-  const [screen, setScreen] = useState<"splash" | "login" | "app">("splash");
+  const [screen, setScreen] = useState<"splash" | "login" | "app">(() => {
+    const saved = localStorage.getItem("viva-saved-active-user");
+    return saved ? "app" : "splash";
+  });
 
   // Core Data Lists State synced from localStorage
   const [members, setMembers] = useState<Member[]>([]);
@@ -43,6 +48,7 @@ export default function App() {
 
   // Selected Tab navigation ("dashboard" | "membros" | "visitantes" | "financeiro" | "escalas" | "discipulado" | "devocional" | "viva-ia")
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Church size mode: "small" (até 20) | "medium" (20-100) | "large" (100+)
   const [churchMode, setChurchMode] = useState<"small" | "medium" | "large">(() => {
@@ -69,11 +75,71 @@ export default function App() {
   };
 
   // Client user session
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem("viva-saved-active-user");
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        if (u.nivel === UserLevel.PASTOR) {
+          const customPastor = localStorage.getItem("viva-pastor-name");
+          if (customPastor) {
+            u.nome = customPastor;
+          }
+        }
+        return u;
+      } catch (_) {}
+    }
+    return null;
+  });
   const [isProfileExpanded, setIsProfileExpanded] = useState<boolean>(false);
 
   // Cross-tab interaction context (triggers AI prompts from other actions)
   const [vivaIAPrompt, setVivaIAPrompt] = useState<string>("");
+
+  const [pastorName, setPastorName] = useState<string>(() => {
+    return localStorage.getItem("viva-pastor-name") || "Pr. Erivaldo Lima Ferreira";
+  });
+
+  const [churchLogoUrl, setChurchLogoUrl] = useState<string>(() => {
+    return localStorage.getItem("viva-church-logo-url") || "";
+  });
+
+  const [ministryNames, setMinistryNames] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem("viva-ministry-custom-names");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (_) {}
+    }
+    return {
+      "Louvor": "Louvor",
+      "Infantil": "Infantil",
+      "Mídia": "Mídia",
+      "Recepção": "Recepção",
+      "Jovens": "Jovens"
+    };
+  });
+
+  const handleUpdatePastorName = (newName: string) => {
+    setPastorName(newName);
+    localStorage.setItem("viva-pastor-name", newName);
+    if (currentUser?.nivel === UserLevel.PASTOR) {
+      const updatedUser = { ...currentUser, nome: newName };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("viva-saved-active-user", JSON.stringify(updatedUser));
+    }
+  };
+
+  const handleUpdateChurchLogoUrl = (newUrl: string) => {
+    setChurchLogoUrl(newUrl);
+    localStorage.setItem("viva-church-logo-url", newUrl);
+  };
+
+  const handleUpdateMinistryName = (key: string, value: string) => {
+    const updated = { ...ministryNames, [key]: value };
+    setMinistryNames(updated);
+    localStorage.setItem("viva-ministry-custom-names", JSON.stringify(updated));
+  };
 
   // Customizable church branch identifiers (for denominations with specific mother-church or mission tags)
   const [hqName, setHqName] = useState<string>(() => {
@@ -214,12 +280,20 @@ export default function App() {
 
   // Finish Login trigger
   const handleLoginSuccess = (userObj: User) => {
+    if (userObj.nivel === UserLevel.PASTOR) {
+      const customPastor = localStorage.getItem("viva-pastor-name");
+      if (customPastor) {
+        userObj.nome = customPastor;
+      }
+    }
     setCurrentUser(userObj);
+    localStorage.setItem("viva-saved-active-user", JSON.stringify(userObj));
     setScreen("app");
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    localStorage.removeItem("viva-saved-active-user");
     setScreen("login");
   };
 
@@ -239,7 +313,7 @@ export default function App() {
         <div className="p-5 space-y-6">
           
           {/* Logo container brand */}
-          <ChurchLogo size={32} showText={true} />
+          <ChurchLogo size={32} showText={true} logoUrl={churchLogoUrl} />
 
           {/* User profile brief card - Compacto, limpo e profissional */}
           <div 
@@ -286,23 +360,36 @@ export default function App() {
           {/* Navigation Links layout - Categorized as per ministerial UX audit */}
           <div className="space-y-5">
             
-            {/* GRUPO 1: MENU PRINCIPAL */}
+            {/* GRUPO 1: COMUNHÃO & CULTIVO */}
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 block uppercase px-3 tracking-widest">
-                Menu Principal
+              <span className="text-[10px] font-extrabold text-stone-400 block uppercase px-3 tracking-widest">
+                Vida em Comunidade
               </span>
               <nav className="space-y-0.5">
-                {/* Nav: Dashboard */}
+                {/* Nav: Início Dashboard */}
                 <button
                   onClick={() => setActiveTab("dashboard")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "dashboard"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
                   }`}
                 >
-                  <LayoutDashboard size={14} /> 
-                  <span>{churchMode === "small" ? "Início & Pastora" : "Painel Geral"}</span>
+                  <Home size={14} className={activeTab === "dashboard" ? "text-emerald-700" : ""} /> 
+                  <span>Início & Comunhão</span>
+                </button>
+
+                {/* Nav: Painel de Gestão */}
+                <button
+                  onClick={() => setActiveTab("painel")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === "painel"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
+                  }`}
+                >
+                  <LayoutDashboard size={14} className={activeTab === "painel" ? "text-emerald-700" : ""} /> 
+                  <span>Liderança & Secretaria</span>
                 </button>
 
                 {/* Nav: Mural Principal */}
@@ -310,12 +397,12 @@ export default function App() {
                   onClick={() => setActiveTab("mural")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "mural"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
                   }`}
                 >
-                  <Megaphone size={14} className={activeTab === "mural" ? "text-[#2E7D32]" : ""} /> 
-                  <span>Mural Principal</span>
+                  <Megaphone size={14} className={activeTab === "mural" ? "text-emerald-700" : ""} /> 
+                  <span>Mural de Avisos</span>
                 </button>
 
                 {/* Nav: Membros */}
@@ -323,12 +410,12 @@ export default function App() {
                   onClick={() => setActiveTab("membros")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "membros"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
                   }`}
                 >
-                  <Users size={14} /> 
-                  <span>{churchMode === "small" ? "Membros & Ovelhas" : "Membros"}</span>
+                  <Users size={14} className={activeTab === "membros" ? "text-emerald-700" : ""} /> 
+                  <span>{churchMode === "small" ? "Família & Ovelhas" : "Família da Fé (Membros)"}</span>
                 </button>
 
                 {/* Nav: Visitantes */}
@@ -336,12 +423,12 @@ export default function App() {
                   onClick={() => setActiveTab("visitantes")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "visitantes"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
                   }`}
                 >
-                  <UserCheck size={14} /> 
-                  <span>{churchMode === "small" ? "Cuidado & Visitantes" : "Visitantes & Acolha"}</span>
+                  <UserCheck size={14} className={activeTab === "visitantes" ? "text-emerald-700" : ""} /> 
+                  <span>{churchMode === "small" ? "Cuidado & Acolhimento" : "Acolhimento & Integração"}</span>
                 </button>
 
                 {/* Nav: Financeiro */}
@@ -349,12 +436,12 @@ export default function App() {
                   onClick={() => setActiveTab("financeiro")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "financeiro"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
                   }`}
                 >
-                  <DollarSign size={14} /> 
-                  <span>{churchMode === "small" ? "Caixa da Igreja" : "Financeiro"}</span>
+                  <DollarSign size={14} className={activeTab === "financeiro" ? "text-emerald-700" : ""} /> 
+                  <span>{churchMode === "small" ? "Tesouraria Solidária" : "Finanças & Mordomia"}</span>
                 </button>
 
                 {/* Nav: Doações */}
@@ -362,12 +449,25 @@ export default function App() {
                   onClick={() => setActiveTab("doacoes")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "doacoes"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-[#1B7A2D] hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-[#1B7A2D]"
+                      : "text-slate-500 hover:text-[#1B7A2D] hover:bg-slate-50"
                   }`}
                 >
-                  <Heart size={14} className={activeTab === "doacoes" ? "text-[#1B7A2D] fill-[#1B7A2D]" : ""} /> 
-                  <span>Doações & PIX</span>
+                  <Heart size={14} className={activeTab === "doacoes" ? "text-[#1B7A2D] fill-rose-100" : ""} /> 
+                  <span>Semear & Contribuir (PIX)</span>
+                </button>
+
+                {/* Nav: Loja & Afiliados */}
+                <button
+                  onClick={() => setActiveTab("loja-affiliates")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === "loja-affiliates"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
+                  }`}
+                >
+                  <ShoppingBag size={14} className={activeTab === "loja-affiliates" ? "text-emerald-700" : ""} /> 
+                  <span>Livraria & Recomendações</span>
                 </button>
 
                 {/* Nav: Viva IA */}
@@ -381,7 +481,7 @@ export default function App() {
                 >
                   <span className="flex items-center gap-2.5">
                     <Bot size={14} /> 
-                    <span>{churchMode === "small" ? "Conselheiro Viva IA" : "Viva IA Teológica"}</span>
+                    <span>{churchMode === "small" ? "Conselheiro Viva IA" : "Pastor Virtual Viva IA"}</span>
                   </span>
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping shrink-0" />
                 </button>
@@ -390,8 +490,8 @@ export default function App() {
 
             {/* GRUPO 2: MENU MINISTERIAL */}
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 block uppercase px-3 tracking-widest">
-                Menu Ministerial
+              <span className="text-[10px] font-extrabold text-stone-400 block uppercase px-3 tracking-widest">
+                Frentes de Serviço
               </span>
               <nav className="space-y-0.5">
                 {/* Nav: Ministérios */}
@@ -399,12 +499,12 @@ export default function App() {
                   onClick={() => setActiveTab("ministerios")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "ministerios"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-55"
                   }`}
                 >
-                  <Award size={14} className={activeTab === "ministerios" ? "text-[#2E7D32]" : ""} /> 
-                  <span>Ministérios</span>
+                  <Award size={14} className={activeTab === "ministerios" ? "text-emerald-700" : ""} /> 
+                  <span>Divisão & Departamentos</span>
                 </button>
 
                 {/* Nav: Escalas e Agenda */}
@@ -412,47 +512,14 @@ export default function App() {
                   onClick={() => setActiveTab("escalas")}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === "escalas"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                      ? "bg-emerald-50/60 text-[#1E4D2B] font-extrabold border-l-4 border-emerald-700"
+                      : "text-slate-500 hover:text-slate-850 hover:bg-slate-55"
                   }`}
                 >
-                  <CalendarCheck size={14} /> 
-                  <span>{churchMode === "small" ? "Cultos & Voluntários" : "Escalas"}</span>
+                  <CalendarCheck size={14} className={activeTab === "escalas" ? "text-emerald-700" : ""} /> 
+                  <span>{churchMode === "small" ? "Cultos & Voluntários" : "Escalas de Cultos"}</span>
                 </button>
 
-                {/* Nav: Celulas e Discipulado */}
-                <button
-                  onClick={() => setActiveTab("discipulado")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
-                    activeTab === "discipulado"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <GraduationCap size={14} /> 
-                  <span>{churchMode === "small" ? "Pequenos Grupos" : "PGMs & Capacitação"}</span>
-                </button>
-              </nav>
-            </div>
-
-            {/* GRUPO 3: AVANÇADO E ADORAÇÃO */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold text-slate-400 block uppercase px-3 tracking-widest">
-                Adoração & Comunicação
-              </span>
-              <nav className="space-y-0.5">
-                {/* Nav: Devocional e Radio */}
-                <button
-                  onClick={() => setActiveTab("devocional")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
-                    activeTab === "devocional"
-                      ? "bg-slate-50 text-slate-900 font-extrabold border-l-4 border-[#2E7D32]"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <Radio size={14} /> 
-                  <span>Rádio & Devocionais</span>
-                </button>
               </nav>
             </div>
 
@@ -636,7 +703,7 @@ export default function App() {
         </header>
 
         {/* Slot view */}
-        <div className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-3.5 sm:p-6 pb-24 md:pb-6 overflow-y-auto max-w-7xl mx-auto w-full">
           {activeTab === "dashboard" && (
             <DashboardKPIs
               members={members}
@@ -649,6 +716,43 @@ export default function App() {
               hideFinancialValues={hideFinancialValues}
               onToggleHideFinancial={handleToggleHideFinancial}
               currentUser={currentUser}
+              onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+              pastorName={pastorName}
+              onUpdatePastorName={handleUpdatePastorName}
+              churchLogoUrl={churchLogoUrl}
+              onUpdateChurchLogoUrl={handleUpdateChurchLogoUrl}
+              ministryNames={ministryNames}
+            />
+          )}
+
+          {activeTab === "painel" && (
+            <PainelGestao
+              members={members}
+              visitors={visitors}
+              transactions={transactions}
+              events={events}
+              scales={scales}
+              onNavigateToTab={setActiveTab}
+              onAskVivaIAPrompt={handleAskVivaIAPrompt}
+              churchMode={churchMode}
+              onSetChurchMode={handleSetChurchMode}
+              hideFinancialValues={hideFinancialValues}
+              onToggleHideFinancial={handleToggleHideFinancial}
+              currentUser={currentUser}
+              onAddVisitor={handleAddVisitor}
+              onUpdateVisitor={handleUpdateVisitor}
+              onRemoveVisitor={handleRemoveVisitor}
+              onAddTransaction={handleAddTransaction}
+              hqName={hqName}
+              setHqName={setHqName}
+              congName={congName}
+              setCongName={setCongName}
+              pastorName={pastorName}
+              onUpdatePastorName={handleUpdatePastorName}
+              churchLogoUrl={churchLogoUrl}
+              onUpdateChurchLogoUrl={handleUpdateChurchLogoUrl}
+              ministryNames={ministryNames}
+              onUpdateMinistryName={handleUpdateMinistryName}
             />
           )}
 
@@ -673,9 +777,18 @@ export default function App() {
           {activeTab === "ministerios" && (
             <MinistriesArea
               members={members}
+              visitors={visitors}
               scales={scales}
               events={events}
+              pgms={pgms}
+              courses={courses}
               currentUser={currentUser}
+              onAddPgm={handleAddPgm}
+              onAddCourse={handleAddCourse}
+              onUpdateCourse={handleUpdateCourse}
+              onAskVivaIAPrompt={handleAskVivaIAPrompt}
+              pastorName={pastorName}
+              ministryNames={ministryNames}
             />
           )}
 
@@ -702,6 +815,10 @@ export default function App() {
             <DonationsModule />
           )}
 
+          {activeTab === "loja-affiliates" && (
+            <StoreAffiliates />
+          )}
+
           {activeTab === "escalas" && (
             <MinistriesScales
               members={members}
@@ -713,106 +830,155 @@ export default function App() {
             />
           )}
 
-          {activeTab === "discipulado" && (
-            <TrainingGroups
-              members={members}
-              pgms={pgms}
-              courses={courses}
-              onAddPgm={handleAddPgm}
-              onAddCourse={handleAddCourse}
-              onUpdateCourse={handleUpdateCourse}
-              onAskVivaIAPrompt={handleAskVivaIAPrompt}
-            />
-          )}
-
-          {activeTab === "devocional" && (
-            <CommunicationRadio 
-              onAskVivaIAPrompt={handleAskVivaIAPrompt} 
-              members={members}
-              visitors={visitors}
-            />
-          )}
-
           {activeTab === "viva-ia" && (
             <VivaIAChat
               initialPrompt={vivaIAPrompt}
               onClearInitialPrompt={handleClearVivaIAPrompt}
+              visitors={visitors}
+              onUpdateVisitor={handleUpdateVisitor}
             />
           )}
         </div>
 
       </main>
 
+      {/* Mobile Drawer Slide-over Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Overlay mask */}
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-all"
+          />
+          
+          {/* Menu Drawer Panels */}
+          <div className="relative flex flex-col w-full max-w-[270px] bg-white h-full shadow-2xl p-5 justify-between">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#1E4D2B] to-[#2E7D32] flex items-center justify-center text-white text-xs font-black">
+                    ⛪
+                  </div>
+                  <div>
+                    <h2 className="text-xs font-black text-slate-900 leading-none">Igreja Viva</h2>
+                    <span className="text-[9px] text-[#2E7D32] font-black uppercase mt-1 block">Menu de Navegação</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  title="Fechar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Comprehensive List of All 11 specialized tabs */}
+              <div className="space-y-1 max-h-[70vh] overflow-y-auto pr-1">
+                <span className="text-[9px] font-black uppercase text-slate-400 block tracking-widest mb-1.5 px-2">Módulos</span>
+                
+                {[
+                  { id: "dashboard", label: "Início (Home)", icon: Home },
+                  { id: "painel", label: "Painel de Gestão", icon: LayoutDashboard },
+                  { id: "mural", label: "Mural de Comunicados", icon: Megaphone },
+                  { id: "membros", label: "Cadastro de Membros", icon: Users },
+                  { id: "visitantes", label: "Visitantes & Acolha", icon: UserCheck },
+                  { id: "loja-affiliates", label: "Loja & Afiliados Center", icon: ShoppingBag },
+                  { id: "viva-ia", label: "Viva IA Teológica", icon: Bot },
+                  { id: "ministerios", label: "Ministérios & Visão", icon: Award },
+                  { id: "escalas", label: "Escalas & Agenda", icon: CalendarCheck },
+                  { id: "financeiro", label: "Gasto & Receita", icon: DollarSign },
+                  { id: "doacoes", label: "Doações & PIX", icon: Heart },
+                ].map((tab) => {
+                  const IconComp = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-xs font-extrabold transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-emerald-50 text-emerald-950 font-black"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <IconComp size={14} className={isActive ? "text-[#1E4D2B]" : "text-slate-400"} />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#1E4D2B] font-bold text-xs uppercase shadow-inner">
+                  {currentUser?.nome?.charAt(0) || "P"}
+                </div>
+                <div className="min-w-0 max-w-[120px]">
+                  <h4 className="text-[11px] font-black text-slate-800 truncate leading-none">{currentUser?.nome || "Pastor Admin"}</h4>
+                  <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-400 block mt-1">{currentUser?.level || "Admin"}</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="p-2 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer"
+                title="Sair"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Bottom Navbar - Estilo nativo moderno, otimizado para celulares */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex justify-around items-center md:hidden z-40 px-2 shadow-xl shrink-0">
         <button
           onClick={() => setActiveTab("dashboard")}
           className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "dashboard" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+            activeTab === "dashboard" ? "text-[#1E4D2B]" : "text-slate-400 hover:text-slate-600"
           }`}
         >
-          <LayoutDashboard size={19} className={activeTab === "dashboard" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Painel</span>
+          <Home size={19} className={activeTab === "dashboard" ? "text-[#1E4D2B] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-black mt-1 tracking-tight">Início</span>
         </button>
 
         <button
           onClick={() => setActiveTab("mural")}
           className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "mural" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+            activeTab === "mural" ? "text-[#1E4D2B]" : "text-slate-400 hover:text-slate-600"
           }`}
         >
-          <Megaphone size={19} className={activeTab === "mural" ? "text-[#2E7D32] stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Mural</span>
+          <Megaphone size={19} className={activeTab === "mural" ? "text-[#1E4D2B] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-black mt-1 tracking-tight">Mural</span>
         </button>
 
         <button
-          onClick={() => setActiveTab("membros")}
+          onClick={() => setActiveTab("painel")}
           className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "membros" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+            activeTab === "painel" ? "text-[#1E4D2B]" : "text-slate-400 hover:text-slate-600"
           }`}
         >
-          <Users size={19} className={activeTab === "membros" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Membros</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("financeiro")}
-          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "financeiro" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          <DollarSign size={19} className={activeTab === "financeiro" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Finanças</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("doacoes")}
-          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "doacoes" ? "text-[#1B7A2D]" : "text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          <Heart size={19} className={activeTab === "doacoes" ? "text-[#1B7A2D] fill-[#1B7A2D] stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Doar</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("escalas")}
-          className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "escalas" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          <CalendarCheck size={19} className={activeTab === "escalas" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Escalas</span>
+          <LayoutDashboard size={19} className={activeTab === "painel" ? "text-[#1E4D2B] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-black mt-1 tracking-tight">Painel</span>
         </button>
 
         <button
           onClick={() => setActiveTab("ministerios")}
           className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
-            activeTab === "ministerios" ? "text-[#2E7D32]" : "text-slate-400 hover:text-slate-600"
+            activeTab === "ministerios" ? "text-[#1E4D2B]" : "text-slate-400 hover:text-slate-600"
           }`}
         >
-          <Award size={19} className={activeTab === "ministerios" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Ministérios</span>
+          <Award size={19} className={activeTab === "ministerios" ? "text-[#1E4D2B] stroke-[2.5]" : "stroke-[1.8]"} />
+          <span className="text-[9px] font-black mt-1 tracking-tight">Ministérios</span>
         </button>
 
         <button
@@ -822,7 +988,7 @@ export default function App() {
           }`}
         >
           <Bot size={19} className={activeTab === "viva-ia" ? "stroke-[2.5]" : "stroke-[1.8]"} />
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Viva IA</span>
+          <span className="text-[9px] font-black mt-1 tracking-tight">Viva IA</span>
         </button>
       </nav>
     </div>

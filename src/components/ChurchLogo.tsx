@@ -7,6 +7,7 @@ interface ChurchLogoProps {
   textColor?: string;
   sloganColor?: string;
   vertical?: boolean;
+  logoUrl?: string;
 }
 
 export default function ChurchLogo({
@@ -15,20 +16,33 @@ export default function ChurchLogo({
   showText = true,
   textColor = "text-slate-900",
   sloganColor = "text-slate-500",
-  vertical = false
+  vertical = false,
+  logoUrl = ""
 }: ChurchLogoProps) {
+  // Try to load from localStorage if not provided to make it backwards-compatible
+  const resolvedLogoUrl = logoUrl || (typeof window !== "undefined" ? localStorage.getItem("viva-church-logo-url") || "" : "");
+
   return (
     <div className={`flex ${vertical ? "flex-col items-center text-center gap-4" : "items-center gap-3"} ${className}`}>
-      {/* High-Fidelity brand-accurate Cruz + Folha + Circuito Digital SVG */}
-      <svg
-        id="logo-igreja-viva"
-        width={size}
-        height={size}
-        viewBox="0 0 200 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0 transition-transform hover:scale-105 duration-300"
-      >
+      {resolvedLogoUrl ? (
+        <img
+          src={resolvedLogoUrl}
+          alt="Logo da Igreja"
+          style={{ width: size, height: size }}
+          className="rounded-xl object-contain shrink-0 transition-transform hover:scale-105 duration-300 shadow-3xs"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        /* High-Fidelity brand-accurate Cruz + Folha + Circuito Digital SVG */
+        <svg
+          id="logo-igreja-viva"
+          width={size}
+          height={size}
+          viewBox="0 0 200 200"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="shrink-0 transition-transform hover:scale-105 duration-300"
+        >
         <defs>
           {/* Subtle nature gradient for the leaf to match the design's organic vibe */}
           <linearGradient id="leafGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -104,6 +118,7 @@ export default function ChurchLogo({
         />
         <circle cx="140" cy="150" r="5" fill="#1565C0" stroke="#FFFFFF" strokeWidth="1.5" />
       </svg>
+      )}
 
       {showText && (
         <div className={`flex flex-col ${vertical ? "items-center text-center" : ""}`}>

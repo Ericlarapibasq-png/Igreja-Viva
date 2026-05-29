@@ -49,10 +49,10 @@ const INITIAL_MURAL_STATIC_ITEMS: MuralItem[] = [
   {
     id: "mural-c-01",
     type: "campanha",
-    title: "Campanha do Quilo: Alimentando Vidas",
-    description: "Neste inverno, nossa meta é arrecadar 2 toneladas de alimentos não perecíveis para apoiar 150 famílias cadastradas na ação social. Traga sua doação no próximo domingo!",
+    title: "Campanha do Quilo Solidário",
+    description: "Arrecadação de alimentos não perecíveis para apoiar famílias assistidas na ação social. Traga sua doação no próximo domingo!",
     date: "2026-06-15",
-    location: "Mesa de Coleta - Recepção Principal",
+    location: "Recepção Principal",
     image: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=600&auto=format&fit=crop&q=80",
     highlight: true,
     likes: 42,
@@ -65,10 +65,10 @@ const INITIAL_MURAL_STATIC_ITEMS: MuralItem[] = [
     id: "mural-a-01",
     type: "aviso",
     title: "Novo Curso EBD: Maturidade Cristã",
-    description: "Inscrições abertas para a nova turma do Curso de Introdução à Maturidade Cristã. Aulas presenciais todo domingo às 09h.",
+    description: "Inscrições abertas para a nova classe dominical. Aulas presenciais todo domingo às 09h.",
     date: "2026-05-31",
     time: "09:00",
-    location: "Salas Anexas EBD",
+    location: "Salas Anexas",
     highlight: false,
     likes: 18,
     likedByUser: false,
@@ -79,14 +79,14 @@ const INITIAL_MURAL_STATIC_ITEMS: MuralItem[] = [
   {
     id: "mural-ca-02",
     type: "campanha",
-    title: "Campanha de Oração: Famílias debaixo da Graça",
-    description: "Estamos iniciando um clamor especial diário por lares restaurados. Todos os dias, às 06h, 12h e 20h. Baixe o boletim de orações no conselheiro Viva IA.",
+    title: "Campanha de Oração pelas Famílias",
+    description: "Clamor especial diário por lares restaurados. Junte-se a nós às 06h, 12h ou 20h diariamente.",
     date: "2026-06-10",
     highlight: false,
     likes: 31,
     likedByUser: false,
     notified: false,
-    tag: "Clamor",
+    tag: "Oração",
     ministry: "Pastoral"
   }
 ];
@@ -322,25 +322,24 @@ export default function ChurchBillboard({
   const regularItems = filteredItems.filter(item => !item.highlight);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto" id="church-billboard-module">
+    <div className="space-y-5 sm:space-y-8 max-w-5xl mx-auto px-0 sm:px-4" id="church-billboard-module">
       
-      {/* Title Header with theological subtitle */}
-      <div className="bg-gradient-to-r from-[#1E4D2B] via-[#2E7D32] to-[#1565C0] rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
-        {/* Subtle decorative circles */}
-        <div className="absolute top-[-30%] right-[-10%] w-[45%] h-[90%] bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-[-15%] left-[-10%] w-[30%] h-[55%] bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+      {/* Title Header with elegant, minimalist look */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-8 shadow-xs relative overflow-hidden">
+        {/* Subtle, soft emerald accent background blob */}
+        <div className="absolute top-[-40%] right-[-10%] w-[35%] h-[80%] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-xs">
-              <Megaphone size={12} className="text-emerald-300 fill-emerald-300" />
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-100/50 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+              <Megaphone size={11} className="text-emerald-700" />
               Mural Principal
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Mural de Programações
             </h1>
-            <p className="text-emerald-50 text-xs sm:text-sm max-w-2xl font-semibold tracking-wide">
-              Fique por dentro de todas as campanhas, programações oficiais, ensaios e escalas ministeriais integradas.
+            <p className="text-slate-500 text-xs sm:text-sm font-medium">
+              Acompanhe campanhas oficiais, ensaios e escalas ministeriais de forma simplificada.
             </p>
           </div>
 
@@ -348,18 +347,17 @@ export default function ChurchBillboard({
             {currentUser?.nivel === UserLevel.PASTOR && (
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="bg-white text-slate-900 border border-transparent font-black px-4 py-2.5 rounded-xl text-xs hover:bg-slate-50 flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                className="bg-[#1E4D2B] text-white border border-transparent font-bold px-4 py-2 rounded-xl text-xs hover:bg-[#153a1f] flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
               >
-                <Plus size={14} className="stroke-[3px]" />
+                <Plus size={13} className="stroke-[3px]" />
                 Publicar Aviso
               </button>
             )}
 
-            {/* Clear custom posts button */}
             {currentUser?.nivel === UserLevel.PASTOR && (
               <button
                 onClick={handleClearCustomAnnouncements}
-                className="bg-red-550 border border-transparent font-bold px-3 py-2.5 rounded-xl text-xs hover:bg-red-600 text-white flex items-center transition-colors cursor-pointer"
+                className="border border-slate-200 hover:bg-slate-50 text-slate-500 font-bold px-3 py-2 rounded-xl text-xs flex items-center transition-colors cursor-pointer"
                 title="Limpar Postagens Personalizadas"
               >
                 Limpar
@@ -576,89 +574,86 @@ export default function ChurchBillboard({
         {/* SECTION 1: HIGHLIGHTED CARD - DESTAQUE VISUAL */}
         {highlights.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-[11px] font-bold text-emerald-800 uppercase tracking-widest flex items-center gap-1.5">
-              <Sparkles size={13} className="text-[#1B7A2D]" />
-              Destaques Principais da Semana
+            <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles size={12} className="text-emerald-700" />
+              Destaque Informativo
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 bg-gradient-to-br from-[#1E4D2B] internally to-slate-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden border border-emerald-990 font-sans">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-900 rounded-2xl p-6 text-white shadow-xs relative overflow-hidden border border-slate-800 font-sans">
               
-              {/* Optional Background Decorative Elements */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(30,240,110,0.06),transparent_40%)]" />
-
-              {/* Text area (Col span 7) */}
+              {/* Text area (Col span 8) */}
               <div className="lg:col-span-8 space-y-4 relative z-10 flex flex-col justify-between">
                 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      ★ Destaque Geral
+                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black px-2 mt-0.5 rounded uppercase tracking-wider">
+                      Importante
                     </span>
-                    <span className="text-slate-300 text-[10px] font-mono whitespace-nowrap">
+                    <span className="text-slate-400 text-[10px] whitespace-nowrap">
                       {new Date(highlights[0].date).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   </div>
 
-                  <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
+                  <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-tight">
                     {highlights[0].title}
                   </h3>
                   
-                  <p className="text-slate-200 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl whitespace-pre-line">
+                  <p className="text-slate-350 text-xs font-normal leading-relaxed max-w-2xl whitespace-pre-line">
                     {highlights[0].description}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/10 text-xs text-slate-300">
+                <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400">
                   {highlights[0].time && (
                     <span className="flex items-center gap-1">
-                      <Clock size={13} className="text-amber-400" />
+                      <Clock size={12} className="text-slate-400" />
                       <span>{highlights[0].time}</span>
                     </span>
                   )}
                   {highlights[0].location && (
                     <span className="flex items-center gap-1">
-                      <MapPin size={13} className="text-amber-400" />
+                      <MapPin size={12} className="text-slate-400" />
                       <span className="truncate max-w-[200px]">{highlights[0].location}</span>
                     </span>
                   )}
                   {highlights[0].tag && (
-                    <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-bold">
+                    <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-medium text-slate-300">
                       #{highlights[0].tag}
                     </span>
                   )}
                   {highlights[0].ministry && (
-                    <span className="text-emerald-300 font-bold">
+                    <span className="text-emerald-400">
                       • {highlights[0].ministry}
                     </span>
                   )}
                 </div>
 
                 {/* Like and Bell Toggle layout in Highlights */}
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-2 pt-1">
                   {/* Botão Curtir */}
                   <button
                     onClick={() => handleToggleLike(highlights[0].id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       highlights[0].likedByUser
-                        ? "bg-red-500 text-white"
-                        : "bg-white/10 text-white hover:bg-white/15"
+                        ? "bg-rose-500/20 text-rose-350 border border-rose-500/30"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-705 border border-slate-700/60"
                     }`}
                   >
-                    <Heart size={14} className={highlights[0].likedByUser ? "fill-white" : ""} />
+                    <Heart size={13} className={highlights[0].likedByUser ? "fill-rose-350" : ""} />
                     <span>{highlights[0].likes}</span>
                   </button>
 
                   {/* Lembrete Futuro */}
                   <button
                     onClick={() => handleToggleNotification(highlights[0].id, highlights[0].title)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       highlights[0].notified
-                        ? "bg-amber-500 text-white"
-                        : "bg-white/10 text-slate-100 hover:bg-white/15"
+                        ? "bg-emerald-500/20 text-emerald-355 border border-emerald-500/30"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-705 border border-slate-700/60"
                     }`}
                     title="Ativar alerta futuro"
                   >
-                    {highlights[0].notified ? <CheckCircle size={14} className="stroke-[2.5]" /> : <Bell size={14} />}
+                    {highlights[0].notified ? <CheckCircle size={13} /> : <Bell size={13} />}
                     <span>{highlights[0].notified ? "Lembrete Ativado" : "Lembrar-me"}</span>
                   </button>
                 </div>
@@ -666,14 +661,14 @@ export default function ChurchBillboard({
               </div>
 
               {/* Decorative Image panel (Col span 4) */}
-              <div className="lg:col-span-4 hidden lg:block relative rounded-2xl overflow-hidden h-full min-h-[160px] border border-white/10">
+              <div className="lg:col-span-4 hidden lg:block relative rounded-xl overflow-hidden h-full min-h-[160px] border border-slate-800">
                 <img
                   src={highlights[0].image || "https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=500&auto=format&fit=crop&q=80"}
                   alt={highlights[0].title}
                   referrerPolicy="no-referrer"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
               </div>
 
             </div>
@@ -717,34 +712,34 @@ export default function ChurchBillboard({
                 return (
                   <div 
                     key={item.id}
-                    className="bg-white border border-slate-200/90 rounded-2xl p-5 hover:border-slate-300 hover:shadow-xs transition-colors flex flex-col justify-between space-y-4"
+                    className="bg-white border border-slate-200/75 rounded-xl p-4.5 hover:border-slate-350 transition-colors flex flex-col justify-between space-y-3.5"
                   >
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {/* Top Header Card Metadata */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
-                          <span className={`${typeColor} font-black text-[9px] px-2 py-0.5 rounded-md uppercase border tracking-wider`}>
+                          <span className={`${typeColor} font-bold text-[8.5px] px-1.5 py-0.5 rounded uppercase border tracking-wider`}>
                             {typeLabel}
                           </span>
                           
                           {item.ministry && (
-                            <span className="text-slate-400 text-[10px] font-bold">
-                              • {item.ministry}
+                            <span className="text-slate-400 text-[9.5px] font-semibold">
+                              {item.ministry}
                             </span>
                           )}
                         </div>
 
-                        <span className="text-[10px] font-bold text-slate-400 font-mono">
+                        <span className="text-[9.5px] font-bold text-slate-400 font-mono">
                           {new Date(item.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
                         </span>
                       </div>
 
                       {/* Title & Body */}
                       <div className="space-y-1">
-                        <h3 className="text-sm font-extrabold text-slate-900 tracking-tight leading-snug">
+                        <h3 className="text-xs font-bold text-slate-900 tracking-tight leading-snug">
                           {item.title}
                         </h3>
-                        <p className="text-slate-600 text-xs leading-relaxed line-clamp-4 whitespace-pre-line">
+                        <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-3 whitespace-pre-line">
                           {item.description}
                         </p>
                       </div>
